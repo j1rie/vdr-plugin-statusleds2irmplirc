@@ -122,8 +122,6 @@ static void send_report(uint8_t led_state, const char *device) {
 }
 
 class cStatusUpdate : public cThread, public cStatus {
-private:
-    bool active;
 public:
     cStatusUpdate();
     ~cStatusUpdate();
@@ -132,7 +130,6 @@ public:
 #else
     virtual void Recording(const cDevice *Device, const char *Name);
 #endif
-    void Stop();
 protected:
     virtual void Action(void);
 };
@@ -143,7 +140,6 @@ int iOffDuration = 10;
 int iOnPauseDuration = 5; 
 bool bPerRecordBlinking = false;
 int iRecordings = 0;
-bool bActive = false;
 const char * irmplirc_device = NULL;
 char State;
 
@@ -306,10 +302,8 @@ cStatusUpdate::~cStatusUpdate()
   if (oStatusUpdate)
   {
     // Perform any cleanup or other regular tasks.
-    bActive = false;
-
     // Stop threads
-    oStatusUpdate->Stop();
+    oStatusUpdate->Cancel();
   }
 }
 
@@ -322,16 +316,16 @@ void cStatusUpdate::Action(void)
     send_report(1 ,irmplirc_device);
     dsyslog("statusleds2irmplirc: turned LED on at start");
 
-    for(bActive = true; bActive;) {
+    while(Running()) {
         if (iRecordings > 0) {
           //  let the LED's blink, if there's a recording
           if(!blinking) {
             blinking = true;
           }
-          for(int i = 0; i < (bPerRecordBlinking ? iRecordings : 1) && bActive; i++) {
+          dsyslog("statusleds2irmplirc: still alive blinking");  // wieder raus!
+          for(int i = 0; i < (bPerRecordBlinking ? iRecordings : 1) && Running(); i++) {
             send_report(1 ,irmplirc_device);
             usleep(iOnDuration * 100000);
-
             send_report(0 ,irmplirc_device);
             usleep(iOnPauseDuration * 100000);
           }
@@ -342,10 +336,10 @@ void cStatusUpdate::Action(void)
             send_report(1 ,irmplirc_device);
             blinking = false;
           }
+          dsyslog("statusleds2irmplirc: still alive");  // wieder raus!
           sleep(1);
         }
     }
-    dsyslog("statusleds2irmplirc: Thread ended (pid=%d)", getpid());
 }
 
 bool cPluginStatusLeds2irmplirc::Start(void)
@@ -405,11 +399,6 @@ bool cPluginStatusLeds2irmplirc::SetupParse(const char *Name, const char *Value)
     return false;
 
   return true;
-}
-
-void cStatusUpdate::Stop()
-{
-  oStatusUpdate->Cancel(((iOnDuration + iOnPauseDuration) * (bPerRecordBlinking ? iRecordings : 1) + iOffDuration) * 10 + 1);
 }
 
 #if VDRVERSNUM >= 10338
