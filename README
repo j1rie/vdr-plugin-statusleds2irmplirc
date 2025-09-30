@@ -15,15 +15,13 @@ when VDR starts, the LED is turned on;
 when VDR stops, the LED is turned off;
 if VDR is recording, the LED blinks (as often as recordings are active).
 
-The LED is on a keyboard, or is controlled by a microcontroller, connected via USB (which serves also as IR-receiver for the remote, see https://github.com/j1rie/IRMP_STM32/blob/master/stm32IRstatusled/README).
+The LED is controlled by a microcontroller, connected via USB (which serves also as IR-receiver for the remote, see https://github.com/j1rie/IRMP_STM32/blob/master/stm32IRstatusled/README).
 
 
 Requirements:
 =============
 
 - vdr 1.2.x (1.1.x should be work also)
-- vdr running as superuser (for console access)
-- for prewarn beeps beep needs to be installed and the kernel might need CONFIG_INPUT_PCSPKR
 
 
 Installation and Compilation:
@@ -42,13 +40,6 @@ Running the plugin:
 - Append -Pstatusleds to the vdr commandline 
 - Append plugin parameters, if you don't want to use the OSD
 
-  -l led, --led=led               Sets the status led to use
-                                  Possible values:
-                                     0: Scroll
-				     1: Num
-				     2: Caps
-				  Default: Num
-
   -d timing, --duration=timing    Sets the timing values in 100ms
                                   Format: on-time,off-time,on-pause-time
 				  Default: 1,10,5
@@ -59,7 +50,7 @@ Running the plugin:
 How active recordings will be signaled:
 =======================================
 
-- If recordings are active, the selected led is blinking:
+- If recordings are active, the led is blinking:
   - Blinking per record is disabled:
     - The led is on for on-time
     - The led is off for off-time
@@ -73,10 +64,10 @@ OSD:
 ====
 
 - The plugin is configurable via the OSD
-- There is an entry Settings->Plugins->statusleds
+- There is an entry Settings->Plugins->statusleds2irmphidkbd
 
 PROBLEMS:
 =========
 
-- The command line switches -d and -b seems not to be functional.
+- The command line switch -d seems not to be functional.
 - If vdr was killed with signal -9 during active recording the LED may remain on.

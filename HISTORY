@@ -1,6 +1,10 @@
 VDR Plugin 'statusleds2irmplirc' Revision History
 ---------------------------------------------
 
-2025-09-12: Version 0.0.1
+2025-09-30: Version 0.2
+
+- remove console stuff,  improve translation
+
+2025-09-12: Version 0.1
 
 - Initial revision.
