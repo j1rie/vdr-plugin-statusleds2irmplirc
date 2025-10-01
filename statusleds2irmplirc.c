@@ -25,7 +25,7 @@
 
 extern char **environ;
 
-static const char *VERSION        = "0.2";
+static const char *VERSION        = "0.3";
 static const char *DESCRIPTION    = tr("show vdr status on irmplirc device");
 
 enum access {
