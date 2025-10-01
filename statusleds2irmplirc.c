@@ -26,7 +26,7 @@
 extern char **environ;
 
 static const char *VERSION        = "0.2";
-static const char *DESCRIPTION    = tr("show vdr status on irmplirc");
+static const char *DESCRIPTION    = tr("show vdr status on irmplirc device");
 
 enum access {
 	ACC_GET,
@@ -141,12 +141,12 @@ int iOnPauseDuration = 5;
 bool bPerRecordBlinking = false;
 int iRecordings = 0;
 const char * irmplirc_device = NULL;
-char State;
 
 cStatusUpdate * oStatusUpdate = NULL;
 
 class cPluginStatusLeds2irmplirc : public cPlugin {
 private:
+  cStatusUpdate *oStatusUpdate;
 public:
   cPluginStatusLeds2irmplirc(void);
   virtual ~cPluginStatusLeds2irmplirc() override;
@@ -156,7 +156,6 @@ public:
   virtual bool ProcessArgs(int argc, char *argv[]) override;
   virtual bool Start(void) override;
   virtual void Stop(void) override;
-  virtual void Housekeeping(void) override;
   virtual const char *MainMenuEntry(void) override { return NULL; }
   virtual cMenuSetupPage *SetupMenu(void) override;
   virtual bool SetupParse(const char *Name, const char *Value) override;
@@ -236,16 +235,13 @@ cPluginStatusLeds2irmplirc::cPluginStatusLeds2irmplirc(void)
   // Initialize any member variables here.
   // DON'T DO ANYTHING ELSE THAT MAY HAVE SIDE EFFECTS, REQUIRE GLOBAL
   // VDR OBJECTS TO EXIST OR PRODUCE ANY OUTPUT!
+  oStatusUpdate = NULL;
 }
 
 cPluginStatusLeds2irmplirc::~cPluginStatusLeds2irmplirc()
 {
   // Clean up after yourself!
-  if (oStatusUpdate)
-  {
     delete oStatusUpdate;
-    oStatusUpdate = NULL;
-  }
 }
 
 const char *cPluginStatusLeds2irmplirc::CommandLineHelp(void)
@@ -299,12 +295,6 @@ cStatusUpdate::cStatusUpdate()
 
 cStatusUpdate::~cStatusUpdate()
 {
-  if (oStatusUpdate)
-  {
-    // Perform any cleanup or other regular tasks.
-    // Stop threads
-    oStatusUpdate->Cancel();
-  }
 }
 
 void cStatusUpdate::Action(void)
@@ -354,12 +344,9 @@ bool cPluginStatusLeds2irmplirc::Start(void)
 void cPluginStatusLeds2irmplirc::Stop(void)
 {
   // turn the LED's off, when VDR stops
+  while(oStatusUpdate->Active()) {usleep(100000); dsyslog("statusleds2irmplirc: waiting");}  // wieder raus!
   send_report(0 ,irmplirc_device);
   dsyslog("statusleds2irmplirc: stopped (pid=%d)", getpid());
-}
-
-void cPluginStatusLeds2irmplirc::Housekeeping(void)
-{
 }
 
 cMenuSetupPage *cPluginStatusLeds2irmplirc::SetupMenu(void)
