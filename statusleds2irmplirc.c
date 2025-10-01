@@ -64,6 +64,7 @@ enum report_id {
 static int stm32fd = -1;
 uint8_t inBuf[64];
 uint8_t outBuf[64];
+volatile bool stop = false;
 
 static bool open_stm32(const char *devicename) {
 	stm32fd = open(devicename, O_RDWR);
@@ -105,6 +106,8 @@ static void write_stm32() {
 }
 
 static void send_report(uint8_t led_state, const char *device) {
+	if (stop)
+	    return;
 	open_stm32(device != NULL ? device : "/dev/irmp_stm32");
         outBuf[0] = REPORT_ID_CONFIG_OUT;
 	outBuf[1] = STAT_CMD;
@@ -312,7 +315,6 @@ void cStatusUpdate::Action(void)
           if(!blinking) {
             blinking = true;
           }
-          dsyslog("statusleds2irmplirc: still alive blinking");  // wieder raus!
           for(int i = 0; i < (bPerRecordBlinking ? iRecordings : 1) && Running(); i++) {
             send_report(1 ,irmplirc_device);
             usleep(iOnDuration * 100000);
@@ -326,7 +328,6 @@ void cStatusUpdate::Action(void)
             send_report(1 ,irmplirc_device);
             blinking = false;
           }
-          dsyslog("statusleds2irmplirc: still alive");  // wieder raus!
           sleep(1);
         }
     }
@@ -344,8 +345,8 @@ bool cPluginStatusLeds2irmplirc::Start(void)
 void cPluginStatusLeds2irmplirc::Stop(void)
 {
   // turn the LED's off, when VDR stops
-  while(oStatusUpdate->Active()) {usleep(100000); dsyslog("statusleds2irmplirc: waiting");}  // wieder raus!
   send_report(0 ,irmplirc_device);
+  stop = true;
   dsyslog("statusleds2irmplirc: stopped (pid=%d)", getpid());
 }
 
