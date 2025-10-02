@@ -46,6 +46,9 @@ Running the plugin:
 
   -p, --perrecordblinking         Enables record count siganlisation
 
+  -w, --prewarn                   warn before recording
+
+  -i, --irmlirc_device            irmlirc device (default /dev/irmp_stm32)
 
 How active recordings will be signaled:
 =======================================

@@ -25,7 +25,7 @@
 
 extern char **environ;
 
-static const char *VERSION        = "0.3";
+static const char *VERSION        = "0.4";
 static const char *DESCRIPTION    = tr("show vdr status on irmplirc device");
 
 enum access {
@@ -137,19 +137,32 @@ protected:
     virtual void Action(void);
 };
 
+class cRecordingPresignal : public cThread {
+protected:
+    virtual void Action(void);
+};
+
 // Global variables that control the overall behaviour:
 int iOnDuration = 1;
 int iOffDuration = 10;
 int iOnPauseDuration = 5; 
 bool bPerRecordBlinking = false;
 int iRecordings = 0;
+int iPrewarnBeeps = 3;
+int iPrewarnBeepPause = 500;
+bool bPrewarnBeep = false;
+int iPrewarnBeepTime = 120;
+int iPrewarnBeepOnDuration = 1;
+
 const char * irmplirc_device = NULL;
 
 cStatusUpdate * oStatusUpdate = NULL;
+cRecordingPresignal * oRecordingPresignal = NULL;
 
 class cPluginStatusLeds2irmplirc : public cPlugin {
 private:
   cStatusUpdate *oStatusUpdate;
+  cRecordingPresignal *oRecordingPresignal;
 public:
   cPluginStatusLeds2irmplirc(void);
   virtual ~cPluginStatusLeds2irmplirc() override;
@@ -172,6 +185,11 @@ private:
   int iNewOffDuration;
   int iNewOnPauseDuration;
   int bNewPerRecordBlinking;
+  int iNewPrewarnBeeps;
+  int iNewPrewarnBeepPause;
+  int bNewPrewarnBeep;
+  int iNewPrewarnBeepTime;
+  int iNewPrewarnBeepOnDuration;
 protected:
   virtual void Store(void);
   void Set(void);
@@ -187,6 +205,11 @@ cMenuSetupStatusLeds2irmplirc::cMenuSetupStatusLeds2irmplirc(void)
   iNewOffDuration = iOffDuration;
   iNewOnPauseDuration = iOnPauseDuration;
   bNewPerRecordBlinking = bPerRecordBlinking;
+  iNewPrewarnBeeps = iPrewarnBeeps;
+  iNewPrewarnBeepPause = iPrewarnBeepPause;
+  bNewPrewarnBeep = bPrewarnBeep;
+  iNewPrewarnBeepTime = iPrewarnBeepTime;
+  iNewPrewarnBeepOnDuration = iPrewarnBeepOnDuration;
 
   Set();
 }
@@ -195,6 +218,15 @@ void cMenuSetupStatusLeds2irmplirc::Set(void)
 {
   int current = Current();
   Clear();
+
+  Add(new cMenuEditBoolItem( tr("Setup.StatusLeds2irmplirc$Prewarn beep"), &bNewPrewarnBeep));
+  if (bNewPrewarnBeep)
+  {
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$Prewarn time (s)"), &iNewPrewarnBeepTime, 1, 32768));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$Beeps"), &iNewPrewarnBeeps, 1, 100));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$Pause (100ms)"), &iNewPrewarnBeepPause));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$On time (100ms)"), &iNewPrewarnBeepOnDuration));
+  }
 
   Add(new cMenuEditBoolItem( tr("Setup.StatusLeds2irmplirc$One blink per recording"), &bNewPerRecordBlinking));
 
@@ -208,7 +240,14 @@ void cMenuSetupStatusLeds2irmplirc::Set(void)
 
 eOSState cMenuSetupStatusLeds2irmplirc::ProcessKey(eKeys Key)
 {
+  bool bOldPrewarnBeep = bNewPrewarnBeep;
+
   eOSState state = cMenuSetupPage::ProcessKey(Key);
+  if (bOldPrewarnBeep != bNewPrewarnBeep)
+  {
+    Set();
+    Display();
+  }
 
   return state;
 }
@@ -219,6 +258,11 @@ void cMenuSetupStatusLeds2irmplirc::Save(void)
   iOffDuration = iNewOffDuration;
   iOnPauseDuration = iNewOnPauseDuration;
   bPerRecordBlinking = bNewPerRecordBlinking;
+  bPrewarnBeep = bNewPrewarnBeep;
+  iPrewarnBeeps = iNewPrewarnBeeps;
+  iPrewarnBeepTime = iNewPrewarnBeepTime;
+  iPrewarnBeepPause = iNewPrewarnBeepPause;
+  iPrewarnBeepOnDuration = iNewPrewarnBeepOnDuration;
 }
 
 void cMenuSetupStatusLeds2irmplirc::Store(void)
@@ -229,6 +273,11 @@ void cMenuSetupStatusLeds2irmplirc::Store(void)
   SetupStore("OffDuration", iOffDuration);
   SetupStore("OnPauseDuration", iOnPauseDuration);
   SetupStore("PerRecordBlinking", bPerRecordBlinking);
+  SetupStore("PrewarnBeep", bPrewarnBeep);
+  SetupStore("PrewarnBeeps", iPrewarnBeeps);
+  SetupStore("PrewarnBeepPause", iPrewarnBeepPause);
+  SetupStore("PrewarnBeepTime", iPrewarnBeepTime);
+  SetupStore("PrewarnBeepOnDuration", iPrewarnBeepOnDuration);
 }
 
 // --- cPluginStatusLeds2irmplirc ----------------------------------------------------------
@@ -239,12 +288,14 @@ cPluginStatusLeds2irmplirc::cPluginStatusLeds2irmplirc(void)
   // DON'T DO ANYTHING ELSE THAT MAY HAVE SIDE EFFECTS, REQUIRE GLOBAL
   // VDR OBJECTS TO EXIST OR PRODUCE ANY OUTPUT!
   oStatusUpdate = NULL;
+  oRecordingPresignal = NULL;
 }
 
 cPluginStatusLeds2irmplirc::~cPluginStatusLeds2irmplirc()
 {
   // Clean up after yourself!
     delete oStatusUpdate;
+    delete oRecordingPresignal;
 }
 
 const char *cPluginStatusLeds2irmplirc::CommandLineHelp(void)
@@ -255,6 +306,8 @@ const char *cPluginStatusLeds2irmplirc::CommandLineHelp(void)
 "  -p, --perrecordblinking                    LED blinks one times per recording\n"
 "  -d [on[,off[,pause]]],                     LED blinking timing\n"
 "     --duration[=On-Time[,Off-Time[,On-Pause-Time]]]\n"
+"  -w [time,beeps,pause,on],                     warn before recording\n"
+"     --prewarn[=Time,Beeps,Pause,on]\n"
 "  -i irmplirc_device, --irmplirc_device=irmplirc_device  irmplirc_device\n"
 ;
 }
@@ -265,22 +318,28 @@ bool cPluginStatusLeds2irmplirc::ProcessArgs(int argc, char *argv[])
   static struct option long_options[] = {
        { "duration",		optional_argument,	NULL, 'd' },
        { "perrecordblinking",	no_argument,		NULL, 'p' },
+       { "prewarn",		required_argument,	NULL, 'w' },
        { "irmplirc_device",	optional_argument,	NULL, 'i' },
        { NULL,			no_argument,		NULL, 0 }
      };
 
   int c;
-  while ((c = getopt_long(argc, argv, "d:pi", long_options, NULL)) != -1) {
+  while ((c = getopt_long(argc, argv, "d:pw:i", long_options, NULL)) != -1) {
         switch (c) {
           case 'd':
-            iOnDuration = 1;
-            iOffDuration = 10;
-            iOnPauseDuration = 5;
+            //iOnDuration = 1;
+            //iOffDuration = 10;
+            //iOnPauseDuration = 5;
             if (optarg && *optarg)
               sscanf(optarg, "%d,%d,%d", &iOnDuration, &iOffDuration, &iOnPauseDuration);
             break;
           case 'p': 
             bPerRecordBlinking = true;
+            break;
+          case 'w':
+            bPrewarnBeep = true;
+            if (optarg && *optarg)
+              sscanf(optarg, "%d,%d,%d,%d", &iPrewarnBeepTime, &iPrewarnBeeps, &iPrewarnBeepPause,&iPrewarnBeepOnDuration);
             break;
           case 'i':
             irmplirc_device = optarg;
@@ -316,7 +375,7 @@ void cStatusUpdate::Action(void)
             blinking = true;
           }
           for(int i = 0; i < (bPerRecordBlinking ? iRecordings : 1) && Running(); i++) {
-            send_report(1 ,irmplirc_device);
+            if (!stop) send_report(1 ,irmplirc_device);
             usleep(iOnDuration * 100000);
             send_report(0 ,irmplirc_device);
             usleep(iOnPauseDuration * 100000);
@@ -325,7 +384,7 @@ void cStatusUpdate::Action(void)
         } else {
           //  turn the LED's on, if there's no recording
           if(blinking) {
-            send_report(1 ,irmplirc_device);
+            if (!stop) send_report(1 ,irmplirc_device);
             blinking = false;
           }
           sleep(1);
@@ -338,6 +397,9 @@ bool cPluginStatusLeds2irmplirc::Start(void)
     // Start any background activities the plugin shall perform.
     oStatusUpdate = new cStatusUpdate;
     oStatusUpdate->Start();
+
+    oRecordingPresignal = new cRecordingPresignal;
+    oRecordingPresignal->Start();
 
     return true;
 }
@@ -382,7 +444,28 @@ bool cPluginStatusLeds2irmplirc::SetupParse(const char *Name, const char *Value)
   {
     bPerRecordBlinking = atoi(Value);
   }
-
+  else if (!strcasecmp(Name, "PrewarnBeep"))
+  {
+    bPrewarnBeep = atoi(Value);
+  }
+  else if (!strcasecmp(Name, "PrewarnBeeps"))
+  {
+    iPrewarnBeeps = atoi(Value);
+  }
+  else if (!strcasecmp(Name, "PrewarnBeepTime"))
+  {
+    iPrewarnBeepTime = atoi(Value);
+  }
+  else if (!strcasecmp(Name, "PrewarnBeepPause"))
+  {
+    iPrewarnBeepPause = atoi(Value);
+  }
+  else if (!strcasecmp(Name, "PrewarnBeepOnDuration"))
+  {
+    iPrewarnBeepOnDuration = atoi(Value);
+    if (iPrewarnBeepOnDuration < 0 || iPrewarnBeepOnDuration > 99)
+      iPrewarnBeepOnDuration = 1;
+  }
   else
     return false;
 
@@ -401,6 +484,48 @@ void cStatusUpdate::Recording(const cDevice *Device, const char *Name)
     iRecordings++;
   else
     iRecordings--;
+}
+
+void cRecordingPresignal::Action(void)
+{
+  dsyslog("Status LED's: Presignal-Thread started (pid=%d)", getpid());
+
+  time_t LastTime = 0;
+
+  // Observe the timer list
+  while(Running()) {
+    // get next timer
+    {
+      LOCK_TIMERS_READ;
+      const cTimer * NextTimer = Timers->GetNextActiveTimer();
+
+      if (NextTimer) {
+        time_t StartTime = NextTimer->StartTime();
+
+        if (LastTime != StartTime) {
+          // get warn time
+          time_t Now = time(NULL);
+
+          // Start signalisation?
+          if (StartTime - iPrewarnBeepTime < Now) {
+            if (bPrewarnBeep) {
+              for(int i = 0; i < iPrewarnBeeps; i++) {
+                if (!stop) send_report(1 ,irmplirc_device);
+                usleep(iPrewarnBeepOnDuration * 100000);
+                send_report(0 ,irmplirc_device);
+                usleep(iPrewarnBeepPause * 100000);
+              }
+            }
+
+            // remember last signaled time
+            LastTime = StartTime;
+          }
+        }
+      }
+    }
+
+    sleep(1);
+  }
 }
 
 VDRPLUGINCREATOR(cPluginStatusLeds2irmplirc); // Don't touch this!
