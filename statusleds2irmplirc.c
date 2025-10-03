@@ -515,6 +515,7 @@ void cRecordingPresignal::Action(void)
                 send_report(0 ,irmplirc_device);
                 usleep(iPrewarnBeepPause * 100000);
               }
+              if (!stop) send_report(1 ,irmplirc_device);
             }
 
             // remember last signaled time
