@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr-StatusLeds2irmplirc 0.4\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2025-10-02 20:37+0200\n"
+"POT-Creation-Date: 2025-10-03 16:58+0200\n"
 "PO-Revision-Date: 2007-08-11 12:34+0200\n"
 "Last-Translator: German <vdr@linuxtv.org>\n"
 "Language-Team: German <vdr@linuxtv.org>\n"
@@ -23,17 +23,20 @@ msgstr "Vorwarn Signal"
 msgid "Setup.StatusLeds2irmplirc$Prewarn time (s)"
 msgstr "Vorwarnzeit (s)"
 
-msgid "Setup.StatusLeds2irmplirc$Beeps"
+msgid "Setup.StatusLeds2irmplirc$Prewarn Beeps"
 msgstr "Vorwarn Anzahl"
 
-msgid "Setup.StatusLeds2irmplirc$Pause (100ms)"
+msgid "Setup.StatusLeds2irmplirc$Prewarn Pause (100ms)"
 msgstr "Vorwarn Pause (100ms)"
 
-msgid "Setup.StatusLeds2irmplirc$On time (100ms)"
-msgstr "Einschaltdauer (100ms)"
+msgid "Setup.StatusLeds2irmplirc$Prewarn On time (100ms)"
+msgstr "Vorwarn Einschaltdauer (100ms)"
 
 msgid "Setup.StatusLeds2irmplirc$One blink per recording"
 msgstr "Pro Aufnahme einmal blinken"
+
+msgid "Setup.StatusLeds2irmplirc$On time (100ms)"
+msgstr "Einschaltdauer (100ms)"
 
 msgid "Setup.StatusLeds2irmplirc$On pause time (100ms)"
 msgstr "Pausendauer (100ms)"

@@ -156,8 +156,8 @@ int iPrewarnBeepOnDuration = 1;
 
 const char * irmplirc_device = NULL;
 
-cStatusUpdate * oStatusUpdate = NULL;
-cRecordingPresignal * oRecordingPresignal = NULL;
+//cStatusUpdate * oStatusUpdate = NULL;
+//cRecordingPresignal * oRecordingPresignal = NULL;
 
 class cPluginStatusLeds2irmplirc : public cPlugin {
 private:
@@ -223,9 +223,9 @@ void cMenuSetupStatusLeds2irmplirc::Set(void)
   if (bNewPrewarnBeep)
   {
     Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$Prewarn time (s)"), &iNewPrewarnBeepTime, 1, 32768));
-    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$Beeps"), &iNewPrewarnBeeps, 1, 100));
-    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$Pause (100ms)"), &iNewPrewarnBeepPause));
-    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$On time (100ms)"), &iNewPrewarnBeepOnDuration));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$Prewarn Beeps"), &iNewPrewarnBeeps, 1, 100));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$Prewarn Pause (100ms)"), &iNewPrewarnBeepPause));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds2irmplirc$Prewarn On time (100ms)"), &iNewPrewarnBeepOnDuration));
   }
 
   Add(new cMenuEditBoolItem( tr("Setup.StatusLeds2irmplirc$One blink per recording"), &bNewPerRecordBlinking));

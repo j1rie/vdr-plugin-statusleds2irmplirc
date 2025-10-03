@@ -6,7 +6,7 @@ Project's homepage:          https://github.com/j1rie/vdr-plugin-statusleds2irmp
 
 Latest version available at: https://github.com/j1rie/vdr-plugin-statusleds2irmplirc/
 
-See the file COPYING for more information.
+See the file COPYING for license information.
 
 Description:
 
@@ -49,6 +49,7 @@ Running the plugin:
   -w, --prewarn                   warn before recording
 
   -i, --irmlirc_device            irmlirc device (default /dev/irmp_stm32)
+  not needed, if you use the udev rule 70-irmp.rules
 
 How active recordings will be signaled:
 =======================================
